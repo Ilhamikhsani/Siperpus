@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BookController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,6 +27,9 @@ Route::group(['middleware' => ['role:pustakawan']], function () {
     Route::post('/book/store', [BookController::class, 'store'])->name('book.store');
     Route::patch('/book/{id}/update', [BookController::class, 'update'])->name('book.update');
     Route::delete('/book/{id}/destroy', [BookController::class, 'destroy'])->name('book.destroy');
+    Route::get('/book/print', [BookController::class, 'print'])->name('book.print');
+    Route::get('/book/export', [BookController::class, 'export'])->name('book.export');
 });
+
 
 require __DIR__ . '/auth.php';

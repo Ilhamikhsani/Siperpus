@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\BooksExport;
 use App\Models\Book;
 use App\Models\Bookshelf;
 use Illuminate\Http\Request;
-use Storage;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BookController extends Controller
 {
@@ -14,11 +17,13 @@ class BookController extends Controller
         $data['books'] = Book::all();
         return view('books.index', $data);
     }
+
     public function create()
     {
         $data['bookshelves'] = Bookshelf::pluck('name', 'id');
         return view('books.create', $data);
     }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -50,16 +55,18 @@ class BookController extends Controller
             );
         }
         return redirect()->route('book')->with($notification);
-        
-        
-    }
-    public function edit($id){
-        $data['book'] = Book::find($id);
-        $data['bookshelves'] = Bookshelf::pluck('name','id');
-        return view('books.edit',$data);
     }
 
-    public function update(Request $request, $id){
+    public function edit($id)
+    {
+        $data['book'] = Book::find($id);
+        $data['bookshelves'] = Bookshelf::pluck('name', 'id');
+        // dd($data);
+        return view('books.edit', $data);
+    }
+
+    public function update(Request $request, $id)
+    {
         $dataLama = Book::find($id);
 
         $validated = $request->validate([
@@ -72,8 +79,8 @@ class BookController extends Controller
             'bookshelf_id' => 'required|max:5',
         ]);
         if ($request->hasFile('cover')) {
-            if($dataLama->cover != null){
-                Storage::delete('public/cover_buku'.$request->old_cover);
+            if ($dataLama->cover != null) {
+                Storage::delete('app/public/cover_buku/' . $request->old_cover);
             }
             $path = $request->file('cover')->storeAs(
                 'public/cover_buku',
@@ -81,25 +88,26 @@ class BookController extends Controller
             );
             $validated['cover'] = basename($path);
         }
-        $dataLama -> update($validated);
-        if ($dataLama){
+        $dataLama->update($validated);
+        if ($dataLama) {
             $notification = array(
                 'message' => 'Data buku berhasil diubah',
-                'alert-type' => 'succes'
+                'alert-type' => 'success'
             );
         } else {
             $notification = array(
-                'message' => 'Data buku gagal disimpan',
+                'message' => 'Data buku gagal diubah',
                 'alert-type' => 'success'
             );
         }
         return redirect()->route('book')->with($notification);
     }
-    public function destroy($id){
+
+    public function destroy($id)
+    {
         $data = Book::find($id);
-        Storage::delete('public/cover_buku/'.$data->cover);
+        Storage::delete('app/public/cover_buku/' . $data->cover);
         $berhasil = $data->delete();
-        
         if ($berhasil) {
             $notification = array(
                 'message' => 'Data buku berhasil dihapus',
@@ -109,8 +117,19 @@ class BookController extends Controller
             $notification = array(
                 'message' => 'Data buku gagal dihapus',
                 'alert-type' => 'error'
-            );   
+            );
         }
         return redirect()->route('book')->with($notification);
+    }
+    public function print()
+    {
+        $data['books'] = Book::all();
+        $pdf = Pdf::loadView('books.print', $data);
+        return $pdf->stream('DaftarBuku.pdf');
+    }
+    public function export()
+    {
+        return Excel::download(new BooksExport, 'book.xlsx');
+        
     }
 }
